@@ -12,26 +12,31 @@ NOTE! This project is developed and should be running on **Ubuntu**, there is no
 
 Below are instructions on how to use the THERMOLINK server project:
 
-1. install Python3, pip3, and venv (Optional: skip if you already have Python3, pip3, and installed)
+1. create virtual environment
 
 ```bash
-sudo apt install python3 &&
-sudo apt install python3-pip &&
-sudo pip3 install virtualenv
+python3 -m venv venv
 ```
+
 2. activate the virtual environment
 
 ```bash
 source venv/bin/activate
 ```
 
-3. start the flask app
+3. install required dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+4. start flask application
 
 ```bash
 flask run
 ```
 
-4. when you done with the development
+5. when you're done with developement
 
 ```bash
 deactivate
