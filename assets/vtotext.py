@@ -31,7 +31,7 @@ def transcribe_and_parse_commands(audio_path):
     aai.settings.api_key = "a4477fa34d284170aeb499608b711bdd"
     transcriber = aai.Transcriber()
 
-    transcript = transcriber.transcribe("D:/作业/论文/ppt/Record (online-voice-recorder.com) 2.mp3")
+    transcript = transcriber.transcribe("./assets/Record (online-voice-recorder.com) 2.mp3")
     if transcript.status == 'completed':
         print('Result of speech to text:', transcript.text)
         parse_heater_commands(transcript.text)
@@ -40,5 +40,5 @@ def transcribe_and_parse_commands(audio_path):
 
 
 # Example usage
-audio_path = "D:/作业/论文/ppt/Record (online-voice-recorder.com) 2.mp3"  # Use your actual audio file path
+audio_path = "./assets/Record (online-voice-recorder.com) 2.mp3"  # Use your actual audio file path
 transcribe_and_parse_commands(audio_path)
