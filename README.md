@@ -20,8 +20,16 @@ python3 -m venv venv
 
 2. activate the virtual environment
 
+for linux:
+
 ```bash
 source venv/bin/activate
+```
+
+for windows:
+
+```cmd
+./venv/bin/activate
 ```
 
 3. install required dependencies
