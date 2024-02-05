@@ -7,39 +7,58 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 app = Flask(__name__)
-
-
+import os
+import joblib
 
 # 加载模型
 heater_on_time_prediction_model = load('./assets/heater_on_time_prediction_model.joblib')
-temperature_prediction_model = load('./assets/heater_on_time_prediction_model.joblib')
-heating_time_prediction_model = load('./assets/heater_on_time_prediction_model.joblib')
+temperature_prediction_model = load('./assets/temperature_prediction_model.joblib')
+heating_time_prediction_model = load('./assets/heating_time_prediction_model.joblib')
 
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.json  # 接收请求数据
 
-    # 预测加热器开启时间（假设为一天中的分钟数）
-    heater_on_time_pred = heater_on_time_prediction_model.predict([data['features_heater_on_time']])
-    heater_on_time_pred_value = heater_on_time_pred[0] if len(heater_on_time_pred) > 0 else None
+    try:
+        # 预测加热器开启时间（小时数）
+        heater_on_time_pred = heater_on_time_prediction_model.predict([data['features_heater_on_time']])
+        heater_on_time_pred_value = heater_on_time_pred[0] if len(heater_on_time_pred) > 0 else None
 
-    # 预测目标温度
-    target_temp_pred = temperature_prediction_model.predict([data['features_temp']])
-    target_temp_pred_value = target_temp_pred[0] if len(target_temp_pred) > 0 else None
+        # 准备第二个模型的输入
+        features_temp = data['features_temp']
+        if heater_on_time_pred_value is not None:
+            features_temp_modified = features_temp.copy()
+            features_temp_modified.insert(1, heater_on_time_pred_value)
 
-    # 预测所需加热时间
-    heating_time_pred = heating_time_prediction_model.predict([data['features_heating_time']])
-    heating_time_pred_value = heating_time_pred[0] if len(heating_time_pred) > 0 else None
+            # 预测目标温度
+            target_temp_pred = temperature_prediction_model.predict([features_temp_modified])
+            target_temp_pred_value = target_temp_pred[0] if len(target_temp_pred) > 0 else None
 
-    # 返回预测结果
-    return jsonify({
-        'heater_on_time_prediction': float(heater_on_time_pred_value) if heater_on_time_pred_value is not None else 'Error: No prediction',
-        'target_temperature_prediction': float(target_temp_pred_value) if target_temp_pred_value is not None else 'Error: No prediction',
-        'heating_time_prediction': float(heating_time_pred_value) if heating_time_pred_value is not None else 'Error: No prediction'
-    })
-heater_on_time_model = load('./assets/heater_on_time_prediction_model.joblib')
-temperature_model = load('./assets/heater_on_time_prediction_model.joblib')
-heating_time_model = load('./assets/heater_on_time_prediction_model.joblib')
+            # 准备第三个模型的输入
+            features_heating_time = data['features_heating_time']
+            if target_temp_pred_value is not None:
+                features_heating_time_modified = features_heating_time.copy()
+                features_heating_time_modified.insert(1, target_temp_pred_value)
+
+                # 预测所需加热时间
+                heating_time_pred = heating_time_prediction_model.predict([features_heating_time_modified])
+                heating_time_pred_value = heating_time_pred[0] if len(heating_time_pred) > 0 else None
+            else:
+                heating_time_pred_value = None
+        else:
+            target_temp_pred_value = None
+            heating_time_pred_value = None
+
+        # 返回预测结果
+        return jsonify({
+            'heater_on_time_prediction': float(heater_on_time_pred_value) if heater_on_time_pred_value is not None else 'Error: No prediction',
+            'target_temperature_prediction': float(target_temp_pred_value) if target_temp_pred_value is not None else 'Error: No prediction',
+            'heating_time_prediction': float(heating_time_pred_value) if heating_time_pred_value is not None else 'Error: No prediction'
+        })
+
+    except Exception as e:
+        # 如果有错误，返回错误信息
+        return jsonify({'error': str(e)}), 400
 
 def preprocess_features(df):
     # 执行数据预处理步骤
@@ -91,12 +110,12 @@ def update_model():
     # 更新目标温度模型
     y_temp = df['target_temperature']
     temperature_model.fit(df[['weekday', 'hour', 'initial_temperature']], y_temp)
-    dump(temperature_model, './assets/heater_on_time_prediction_model.joblib')
+    dump(temperature_model, './assets/temperature_prediction_model.joblib')
     
     # 更新所需加热时间模型
     y_heating = df['heating_time']
     heating_time_model.fit(df[['initial_temperature', 'target_temperature', 'temperature_outside', 'humidity']], y_heating)
-    dump(heating_time_model, './assets/heater_on_time_prediction_model.joblib')
+    dump(heating_time_model, './assets/heating_time_prediction_model.joblib')
     
     return jsonify({'status': 'models updated'})
 if __name__ == '__main__':
