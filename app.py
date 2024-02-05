@@ -59,12 +59,12 @@ def update_model():
     new_df = preprocess_features(pd.DataFrame([new_data]))
     
     # 读取CSV文件，并将新数据附加到其中
-    df = pd.read_csv('simulated_heater_usage_data.csv')
+    df = pd.read_csv('./assets/simulated_heater_usage_data.csv')
     df = pd.concat([df, new_df], ignore_index=True)
     
     # 在保存之前移除中间值列
     df_to_save = df[['date', 'time', 'target_temperature', 'initial_temperature', 'heater_on', 'temperature_outside', 'humidity', 'datetime', 'last_use_time_diff', 'avg_use_time_last_week', 'heating_time']]
-    df_to_save.to_csv('simulated_heater_usage_data.csv', index=False)
+    df_to_save.to_csv('./assets/simulated_heater_usage_data.csv', index=False)
     
     # 现在进行预处理和训练步骤...
     # 确保在此步骤中使用的是完整的df，包括新生成的预处理列
