@@ -29,7 +29,7 @@ source venv/bin/activate
 for windows:
 
 ```cmd
-./venv/bin/activate
+.\venv\Scripts\activate
 ```
 
 3. install required dependencies

@@ -8,4 +8,4 @@ pip==23.3.1
 setuptools==69.0.2
 Werkzeug==3.0.1
 wheel==0.42.0
-a
+assemblyai==0.20.0
