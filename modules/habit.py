@@ -38,7 +38,7 @@ def recommend_start_time(predicted_values):
     return recommended_start_datetime
 
 def main():
-    file_path = 'D:/作业/论文/ppt/heater_simulation_data_en.xlsx'
+    file_path = './heater_simulation_data_en.xlsx'
     current_temp = 23
     external_temp = 15
 
