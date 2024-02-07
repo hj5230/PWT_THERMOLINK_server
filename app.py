@@ -1,5 +1,5 @@
-import os
-import numpy as np
+# import os
+# import numpy as np
 import pandas as pd
 # import joblib
 # from joblib import load
@@ -17,6 +17,12 @@ mongo = PyMongo(app)
 @app.route('/')
 def flask():
     return jsonify({'message': 'Not 404'})
+
+@app.route('/login')
+def login():
+    USER = mongo.db.USER
+    data = USER.find_one()
+    return data
 
 # 加载模型
 heater_on_time_prediction_model = load('./assets/heater_on_time_prediction_model.joblib')
