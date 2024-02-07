@@ -6,9 +6,13 @@ from joblib import load, dump
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
-app = Flask(__name__)
 import os
 import joblib
+app = Flask(__name__)
+
+@app.route('/')
+def flask():
+    return jsonify({'message': 'Not 404'})
 
 # 加载模型
 heater_on_time_prediction_model = load('./assets/heater_on_time_prediction_model.joblib')
