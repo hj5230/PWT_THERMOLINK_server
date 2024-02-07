@@ -8,9 +8,13 @@ from joblib import load, dump
 from sklearn.preprocessing import StandardScaler
 from flask import Flask, request, jsonify
 from flask import Flask, request, jsonify
+from flask_socketio import SocketIO
+from flask_cors import CORS
 from flask_pymongo import PyMongo
 
 app = Flask(__name__)
+CORS(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*")
 app.config["MONGO_URI"] = "mongodb://localhost:27017/yourDatabaseName"
 mongo = PyMongo(app)
 
@@ -23,6 +27,11 @@ def login():
     USER = mongo.db.USER
     data = USER.find_one()
     return data
+
+@socketio.on('audio')
+def handleAudio(data):
+    print(data)
+    return
 
 # 加载模型
 heater_on_time_prediction_model = load('./assets/heater_on_time_prediction_model.joblib')
@@ -146,4 +155,4 @@ def grade_app():
     return jsonify({'status': 'ok'})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True)
