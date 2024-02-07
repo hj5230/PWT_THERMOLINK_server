@@ -1,14 +1,18 @@
-from flask import Flask, request, jsonify
-from joblib import load
-import numpy as np
-from flask import Flask, request, jsonify
-from joblib import load, dump
-import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import StandardScaler
 import os
-import joblib
+import numpy as np
+import pandas as pd
+# import joblib
+# from joblib import load
+from joblib import load, dump
+# from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import StandardScaler
+from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify
+from flask_pymongo import PyMongo
+
 app = Flask(__name__)
+app.config["MONGO_URI"] = "mongodb://localhost:27017/yourDatabaseName"
+mongo = PyMongo(app)
 
 @app.route('/')
 def flask():
