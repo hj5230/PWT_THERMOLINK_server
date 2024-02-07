@@ -118,5 +118,18 @@ def update_model():
     dump(heating_time_model, './assets/heating_time_prediction_model.joblib')
     
     return jsonify({'status': 'models updated'})
+
+@app.route('/cutomer-service')
+def get_contact():
+    return jsonify({
+        'email': 'customer.service@example.com',
+        'phone': '0123456789'
+    })
+
+@app.route('/grade-app', methods=['POST'])
+def grade_app():
+    data = request.json
+    return jsonify({'status': 'ok'})
+
 if __name__ == '__main__':
     app.run(debug=True)
