@@ -32,11 +32,67 @@ def login():
 # def handleAudio(data):
 #     print(f'Data type: {type(data)}, Data size: {len(data) if hasattr(data, "__len__") else "N/A"}')
 
+# 命令处理函数
+def adjust_temperature(temperature):
+    return {"action": "adjust_temperature", "temperature": temperature}
+
+def schedule_heater(hours):
+    return {"action": "open_heater", "hours": hours}
+
+def schedule_heater_shutdown(hours):
+    return {"action": "schedule_heater_shutdown", "hours": hours}
+
+# 解析命令
+def parse_heater_commands(text):
+    commands = []
+    temp_pattern = r"I'd like to see the temperature cranked up to (\d+) degrees"
+    schedule_pattern = r"open the heater in (\d+) hours"
+    shutdown_pattern = r"shutdown the heater in (\d+) hours"
+
+    temp_match = re.search(temp_pattern, text, re.IGNORECASE)
+    if temp_match:
+        commands.append(adjust_temperature(temp_match.group(1)))
+
+    schedule_match = re.search(schedule_pattern, text, re.IGNORECASE)
+    if schedule_match:
+        commands.append(schedule_heater(schedule_match.group(1)))
+
+    shutdown_match = re.search(shutdown_pattern, text, re.IGNORECASE)
+    if shutdown_match:
+        commands.append(schedule_heater_shutdown(shutdown_match.group(1)))
+
+    return commands
+
+# 用 AssemblyAI 进行语音转文字转录
+def transcribe_audio(audio_path):
+    aai.settings.api_key = "your_assemblyai_api_key"
+    transcriber = aai.Transcriber()
+    transcript = transcriber.transcribe(audio_path)
+    if transcript.status == 'completed':
+        return transcript.text
+    else:
+        print("Transcription is not completed. Status:", transcript.status)
+        return None
+
+# 组合上传和处理逻辑
 @app.route('/audio', methods=['POST'])
 def upload_audio():
+    if 'audio' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
     audio_file = request.files['audio']
-    audio_file.save('received_audio.wav')
-    return jsonify({'msg': 'Audio file received successfully!'})
+    if audio_file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    
+    file_path = os.path.join('uploads', audio_file.filename)
+    audio_file.save(file_path)
+
+    # 进行音频转录
+    transcript_text = transcribe_audio(file_path)
+    if transcript_text:
+        commands = parse_heater_commands(transcript_text)
+        return jsonify({'msg': 'Audio file received and processed successfully!', 'commands': commands})
+    else:
+        return jsonify({'error': 'Failed to transcribe audio'}), 500
 
 # 加载模型
 heater_on_time_prediction_model = load('./assets/heater_on_time_prediction_model.joblib')
