@@ -8,13 +8,13 @@ from joblib import load, dump
 from sklearn.preprocessing import StandardScaler
 from flask import Flask, request, jsonify
 from flask import Flask, request, jsonify
-from flask_socketio import SocketIO
+# from flask_socketio import SocketIO
 from flask_cors import CORS
 from flask_pymongo import PyMongo
 
 app = Flask(__name__)
 CORS(app, cors_allowed_origins="*")
-socketio = SocketIO(app, cors_allowed_origins="*")
+# socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
 app.config["MONGO_URI"] = "mongodb://localhost:27017/yourDatabaseName"
 mongo = PyMongo(app)
 
@@ -28,10 +28,15 @@ def login():
     data = USER.find_one()
     return data
 
-@socketio.on('audio')
-def handleAudio(data):
-    print(data)
-    return
+# @socketio.on('audio')
+# def handleAudio(data):
+#     print(f'Data type: {type(data)}, Data size: {len(data) if hasattr(data, "__len__") else "N/A"}')
+
+@app.route('/audio', methods=['POST'])
+def upload_audio():
+    audio_file = request.files['audio']
+    audio_file.save('received_audio.wav')
+    return jsonify({'msg': 'Audio file received successfully!'})
 
 # 加载模型
 heater_on_time_prediction_model = load('./assets/heater_on_time_prediction_model.joblib')
@@ -155,4 +160,4 @@ def grade_app():
     return jsonify({'status': 'ok'})
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    app.run(debug=True)
