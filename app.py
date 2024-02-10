@@ -32,7 +32,8 @@ def login():
 # def handleAudio(data):
 #     print(f'Data type: {type(data)}, Data size: {len(data) if hasattr(data, "__len__") else "N/A"}')
 
-# 命令处理函数
+
+# 定义命令处理函数
 def adjust_temperature(temperature):
     return {"action": "adjust_temperature", "temperature": temperature}
 
@@ -42,26 +43,59 @@ def schedule_heater(hours):
 def schedule_heater_shutdown(hours):
     return {"action": "schedule_heater_shutdown", "hours": hours}
 
-# 解析命令
+# 解析命令，包含多种表达方式
 def parse_heater_commands(text):
     commands = []
-    temp_pattern = r"I'd like to see the temperature cranked up to (\d+) degrees"
-    schedule_pattern = r"open the heater in (\d+) hours"
-    shutdown_pattern = r"shutdown the heater in (\d+) hours"
+    # 扩展多种表达方式的模式（英文和中文）
+    temp_patterns = [
+        r"temperature cranked up to (\d+) degrees",
+        r"increase temperature to (\d+) degrees",
+        r"set the temperature to (\d+)",
+        r"将温度调整到(\d+)度",
+        r"温度提高到(\d+)度"
+    ]
+    schedule_patterns = [
+        r"open the heater in (\d+) hours",
+        r"activate heater after (\d+) hours",
+        r"turn on the heater in (\d+) hours",
+        r"(\d+)小时后开启加热器",
+        r"在(\d+)小时后启动加热器"
+    ]
+    shutdown_patterns = [
+        r"shutdown the heater in (\d+) hours",
+        r"turn off the heater after (\d+) hours",
+        r"deactivate heater in (\d+) hours",
+        r"schedule the heater to shutdown in (\d+) hours",
+        r"(\d+)小时后关闭加热器",
+        r"在(\d+)小时后关闭加热设备"
+    ]
 
-    temp_match = re.search(temp_pattern, text, re.IGNORECASE)
-    if temp_match:
-        commands.append(adjust_temperature(temp_match.group(1)))
+    # 合并英文和中文模式
+    all_patterns = [
+        (temp_patterns, adjust_temperature),
+        (schedule_patterns, schedule_heater),
+        (shutdown_patterns, schedule_heater_shutdown),
+    ]
 
-    schedule_match = re.search(schedule_pattern, text, re.IGNORECASE)
-    if schedule_match:
-        commands.append(schedule_heater(schedule_match.group(1)))
-
-    shutdown_match = re.search(shutdown_pattern, text, re.IGNORECASE)
-    if shutdown_match:
-        commands.append(schedule_heater_shutdown(shutdown_match.group(1)))
+    # 遍历模式并匹配命令
+    for patterns, action in all_patterns:
+        for pattern in patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                commands.append(action(*match.groups()))
+                break  # 匹配到一个模式后即跳出循环，防止重复添加命令
 
     return commands
+
+# 示例文本和对应的解析结果
+example_texts = [
+    "I'd like the temperature cranked up to 25 degrees.",
+    "请将温度调整到25度。",
+    "Please turn on the heater in 3 hours.",
+    "3小时后开启加热器。",
+    "Schedule the heater to shutdown in 5 hours.",
+    "请在5小时后关闭加热器。"
+]
 
 # 用 AssemblyAI 进行语音转文字转录
 def transcribe_audio(audio_path):
