@@ -1,32 +1,51 @@
-# import os
-# import numpy as np
-import pandas as pd
-# import joblib
-# from joblib import load
-from joblib import load, dump
-# from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import StandardScaler
+import os
+from datetime import timedelta
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
-from flask import Flask, request, jsonify
-# from flask_socketio import SocketIO
 from flask_cors import CORS
 from flask_pymongo import PyMongo
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+import pandas as pd
+from joblib import load, dump
+from sklearn.preprocessing import StandardScaler
 
-app = Flask(__name__)
+from models.User import User
+
+load_dotenv()
+
+app = Flask(os.getenv('FLASK_APP'))
 CORS(app, cors_allowed_origins="*")
 # socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
-app.config["MONGO_URI"] = "mongodb://localhost:27017/yourDatabaseName"
+app.config["JWT_SECRET_KEY"] = os.getenv('JWT_SECRET_KEY')
+app.config["MONGO_URI"] = os.getenv('MONGO_URI')
 mongo = PyMongo(app)
 
 @app.route('/')
 def flask():
     return jsonify({'message': 'Not 404'})
 
-@app.route('/login')
-def login():
-    USER = mongo.db.USER
-    data = USER.find_one()
-    return data
+@app.route('/sign', methods=['POST'])
+def sign():
+    user = mongo.db.users.find_one({"username": request.form.get('username')})
+    if (not user): # and productId is valid
+        mongo.db.users.insert_one(User(
+                request.form.get('username'),
+                request.form.get('email'),
+                request.form.get('productId')
+                ).to_dict())
+        jwt = create_access_token(
+            identity=request.form.get('username'),
+            expires_delta=timedelta(days=7)
+        )
+        return jsonify(jwt)
+    else:
+        # if productId is valid
+        jwt = create_access_token(
+            identity=request.form.get('username'),
+            expires_delta=timedelta(days=7)
+        )
+        return jsonify(jwt)
+    # return data
 
 # @socketio.on('audio')
 # def handleAudio(data):
@@ -148,6 +167,7 @@ def update_model():
     return jsonify({'status': 'models updated'})
 
 @app.route('/cutomer-service')
+@jwt_required()
 def get_contact():
     return jsonify({
         'email': 'customer.service@example.com',
@@ -155,8 +175,9 @@ def get_contact():
     })
 
 @app.route('/grade-app', methods=['POST'])
+@jwt_required()
 def grade_app():
-    data = request.json
+    data = request.json # process with third-party api
     return jsonify({'status': 'ok'})
 
 if __name__ == '__main__':
