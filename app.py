@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_pymongo import PyMongo
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import pandas as pd
 from joblib import load, dump
 from sklearn.preprocessing import StandardScaler
@@ -18,7 +18,9 @@ CORS(app, cors_allowed_origins="*")
 # socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
 app.config["JWT_SECRET_KEY"] = os.getenv('JWT_SECRET_KEY')
 app.config["MONGO_URI"] = os.getenv('MONGO_URI')
+
 mongo = PyMongo(app)
+jwt = JWTManager(app)
 
 @app.route('/')
 def flask():
@@ -26,26 +28,24 @@ def flask():
 
 @app.route('/sign', methods=['POST'])
 def sign():
-    user = mongo.db.users.find_one({"username": request.form.get('username')})
-    if (not user): # and productId is valid
-        mongo.db.users.insert_one(User(
-                request.form.get('username'),
-                request.form.get('email'),
-                request.form.get('productId')
-                ).to_dict())
-        jwt = create_access_token(
-            identity=request.form.get('username'),
-            expires_delta=timedelta(days=7)
-        )
-        return jsonify(jwt)
-    else:
-        # if productId is valid
-        jwt = create_access_token(
-            identity=request.form.get('username'),
-            expires_delta=timedelta(days=7)
-        )
-        return jsonify(jwt)
-    # return data
+    # print(request)
+    # if not request.is_json:
+    #     return jsonify({"msg": "Missing JSON in request"}), 400
+    data = request.get_json()
+    username = data.get('username', None)
+    email = data.get('email', None)
+    product_id = data.get('productId', None)
+    if not username or not email or not product_id:
+        return jsonify({"msg": "Missing username, email or productId"}), 400
+    user = mongo.db.users.find_one({"username": username})
+    if not user:
+        mongo.db.users.insert_one({
+            "username": username,
+            "email": email,
+            "productId": product_id
+        })
+    jwt = create_access_token(identity=username, expires_delta=timedelta(days=7))
+    return jsonify(jwt=jwt), 200
 
 # @socketio.on('audio')
 # def handleAudio(data):
