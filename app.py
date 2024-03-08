@@ -8,9 +8,15 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 import pandas as pd
 from joblib import load, dump
 from sklearn.preprocessing import StandardScaler
-
+from werkzeug.utils import secure_filename
+import re
+import assemblyai as aai
+import uuid
 from models.User import User
-
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 load_dotenv()
 
 app = Flask(os.getenv('FLASK_APP'))
@@ -106,28 +112,27 @@ def parse_heater_commands(text):
 
     return commands
 
-# 示例文本和对应的解析结果
-example_texts = [
-    "I'd like the temperature cranked up to 25 degrees.",
-    "请将温度调整到25度。",
-    "Please turn on the heater in 3 hours.",
-    "3小时后开启加热器。",
-    "Schedule the heater to shutdown in 5 hours.",
-    "请在5小时后关闭加热器。"
-]
-
 # 用 AssemblyAI 进行语音转文字转录
 def transcribe_audio(audio_path):
-    aai.settings.api_key = "your_assemblyai_api_key"
-    transcriber = aai.Transcriber()
-    transcript = transcriber.transcribe(audio_path)
-    if transcript.status == 'completed':
-        return transcript.text
-    else:
-        print("Transcription is not completed. Status:", transcript.status)
+    try:
+        aai.settings.api_key = "a4477fa34d284170aeb499608b711bdd"
+        transcriber = aai.Transcriber()
+        transcript = transcriber.transcribe(audio_path)
+        if transcript.status == 'completed':
+            return transcript.text
+        else:
+            print("Transcription is not completed. Status:", transcript.status)
+            return None
+    except Exception as e:
+        print(f"Error during transcription: {e}")
         return None
 
-# 组合上传和处理逻辑
+
+app.config['UPLOAD_FOLDER'] = 'uploads'  # 上传文件夹路径
+
+# 确保上传目录存在
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
 @app.route('/audio', methods=['POST'])
 def upload_audio():
     if 'audio' not in request.files:
@@ -135,17 +140,49 @@ def upload_audio():
     audio_file = request.files['audio']
     if audio_file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
-    
-    file_path = os.path.join('uploads', audio_file.filename)
-    audio_file.save(file_path)
 
-    # 进行音频转录
-    transcript_text = transcribe_audio(file_path)
-    if transcript_text:
-        commands = parse_heater_commands(transcript_text)
-        return jsonify({'msg': 'Audio file received and processed successfully!', 'commands': commands})
+    # 使用uuid生成唯一文件名，防止文件名冲突
+    unique_filename = str(uuid.uuid4()) + "_" + secure_filename(audio_file.filename)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+    audio_file.save(file_path)
+    
+    # 确保文件已经保存
+    if os.path.exists(file_path):
+        transcript_text = transcribe_audio(file_path)
+        print(transcript_text)
+        print(1)
+        
+        if transcript_text:
+            commands = parse_heater_commands(transcript_text)
+            print(commands)
+            return jsonify({'message': 'Audio file received and processed successfully.', 'commands': commands}), 200
+        else:
+            return jsonify({'error': 'Failed to transcribe audio.'}), 500
     else:
-        return jsonify({'error': 'Failed to transcribe audio'}), 500
+        return jsonify({'error': 'Failed to save audio file.'}), 500
+
+# @app.route('/audio', methods=['POST'])
+# def upload_audio():
+#     if 'audio' not in request.files:
+#         return jsonify({'error': 'No file part'}), 400
+#     audio_file = request.files['audio']
+#     if audio_file.filename == '':
+#         return jsonify({'error': 'No selected file'}), 400
+
+#     filename = secure_filename(audio_file.filename)
+#     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+#     audio_file.save(file_path)
+    
+#     transcript_text = transcribe_audio(file_path)
+    
+#     if transcript_text:
+#         commands = parse_heater_commands(transcript_text)
+#         print(transcript_text)
+#         print(1)
+#         print(commands)
+#         return jsonify({'message': 'Audio file received and processed successfully.', 'commands': commands}), 200
+#     else:
+#         return jsonify({'error': 'Failed to transcribe audio.'}), 500
 
 # 加载模型
 heater_on_time_prediction_model = load('./assets/heater_on_time_prediction_model.joblib')
