@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 app = Flask(__name__)
 
+app.config['UPLOAD_FOLDER'] = 'uploads' 
 # 加载模型
 heater_on_time_prediction_model = load('heater_on_time_prediction_model.joblib')
 temperature_prediction_model = load('temperature_prediction_model.joblib')
