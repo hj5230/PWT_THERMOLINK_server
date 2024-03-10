@@ -47,6 +47,15 @@ def sign():
     jwt = create_access_token(identity=username, expires_delta=timedelta(days=7))
     return jsonify(jwt=jwt), 200
 
+@app.route('/verify_jwt')
+@jwt_required()
+def verify_jwt():
+    username = get_jwt_identity()
+    user = mongo.db.users.find_one({ 'username': username })
+    if user:
+        return jsonify(username = username), 200
+    return jsonify(msg = 'User not found'), 404
+
 # @socketio.on('audio')
 # def handleAudio(data):
 #     print(f'Data type: {type(data)}, Data size: {len(data) if hasattr(data, "__len__") else "N/A"}')
